@@ -19,6 +19,8 @@ class Singleton {
             lock_guard<mutex> lg(mtx);
             if (nullptr == instance_) {
                 instance_ = new Singleton();
+                // 这个静态变量在程序结束被回收时调用它的
+                // 析构函数，就能释放存储在堆中的singleton对象
                 static FreeSingleton fs;
             }
         }
@@ -36,8 +38,8 @@ class Singleton {
             if (nullptr != instance_) {
                 delete instance_;
                 instance_ = NULL;
-                cout << "free FreeSingle" << endl;
             }
+            cout << "free FreeSingle" << endl;
         }
     };
 
