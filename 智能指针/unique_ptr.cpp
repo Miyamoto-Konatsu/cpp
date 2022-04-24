@@ -5,28 +5,29 @@ using namespace std;
 
 template <typename T> class unique_ptr {
   public:
-    unique_ptr(T *data = nullptr) : data_(data) {}
-    unique_ptr(unique_ptr<T> &&up) {
-        if (up.data_ != data_) {
-            if (data_ != nullptr) {
-                delete data_;
-            }
-            data_ = up.data_;
-            up.data_ = nullptr;
-        }
-    }
+    explicit unique_ptr(T *data = nullptr) noexcept : data_(data) {}
     unique_ptr(const unique_ptr<T> &up) = delete;
     unique_ptr &operator=(const unique_ptr<T> &up) = delete;
+    unique_ptr(unique_ptr<T> &&up) {
+        data_ = up.data_;
+        up.data_ = nullptr;
+    }
+    unique_ptr &operator=(unique_ptr<T> &&up) {
+        if (data_)
+            delete data_;
+        data_ = up.data_;
+        up.data_ = nullptr;
+        return *this;
+    }
     ~unique_ptr() {
         if (data_ != nullptr) {
             delete data_;
         }
     }
 
+    T *get() const noexcept { return data_; }
 
-    T *get() const { return data_; }
-
-    T *release() {
+    T *release() noexcept {
         T *result = data_;
         data_ = nullptr;
         return result;
@@ -43,9 +44,12 @@ template <typename T> class unique_ptr {
 
     T &operator*() { return *data_; }
     T *operator->() const { return data_; }
-    bool operator==(const T *const r) const { return data_ == r; }
-    bool operator!=(const T *const r) const { return data_ != r; }
-    bool operator!() const { return data_ == nullptr; }
+    bool operator==(const T *const r) const noexcept { return data_ == r; }
+    bool operator!=(const T *const r) const noexcept { return data_ != r; }
+    bool operator!() const noexcept { return data_ == nullptr; }
+
+    // operator bool() 前面不用加bool返回类型
+    explicit operator bool() const noexcept { return data_ != nullptr; }
 
   private:
     T *data_ = nullptr;
@@ -59,6 +63,8 @@ struct Task {
 };
 
 int main() {
+    unique_ptr<Task> pp(new Task(4));
+    pp = unique_ptr<Task>(new Task(5));
     // 空对象 unique_ptr
     unique_ptr<int> ptr1;
 
@@ -77,7 +83,7 @@ int main() {
     unique_ptr<Task> taskPtr(new Task(23));
 
     // 检查 taskPtr 是否为空
-    if (taskPtr != nullptr)
+    if (taskPtr)
         cout << "taskPtr is  not empty" << endl;
 
     // 访问 unique_ptr关联指针的成员
@@ -130,6 +136,5 @@ int main() {
     cout << ptr->mId << endl;
 
     delete ptr;
-
     return 0;
 }
